@@ -1,5 +1,4 @@
-﻿using System.Collections;
-using System.Text;
+﻿using System.Text;
 
 namespace torrent;
 
@@ -103,5 +102,37 @@ public static class BEncoding
         }
 
         return list;
+    }
+
+    private static Dictionary<string, object> DecodeDictionary(IEnumerator<byte> enumerator)
+    {
+        var dictionary = new Dictionary<string, object>();
+        var keys = new List<string>();
+        
+        while (enumerator.MoveNext())
+        {
+            if (enumerator.Current == DictionaryEnd)
+            {
+                break;
+            }
+
+            var key = Encoding.UTF8.GetString(DecodeByteArray(enumerator));
+            enumerator.MoveNext();
+            var val = DecodeNextObject(enumerator);
+            
+            keys.Add(key);
+            dictionary.Add(key, val);
+        }
+
+        // 입력된 딕셔너리가 올바르게 소팅되어있는지 검증합니다.
+        // 그렇지 않으면 동일한 인코딩을 생성할 수 없습니다.
+        var sortedKeys = keys.OrderBy(x => BitConverter.ToString(Encoding.UTF8.GetBytes(x)));
+
+        if (keys.SequenceEqual(sortedKeys) is false)
+        {
+            throw new InvalidOperationException("error loading dictionary: keys not sorted");
+        }
+
+        return dictionary;
     }
 }
